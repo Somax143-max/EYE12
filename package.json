@@ -1,0 +1,11 @@
+{
+  "name": "drishti-ai",
+  "version": "2.0.0",
+  "private": true,
+  "description": "DRISHTI AI - Diabetic Retinopathy Diagnostic System",
+  "scripts": {
+    "dev": "npx serve -l 3000 frontend",
+    "start": "npx serve -l 3000 frontend",
+    "build": "echo 'Static assets ready for deployment'"
+  }
+}

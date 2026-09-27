@@ -17,8 +17,12 @@ import json
 import cv2
 import numpy as np
 
-BASE_DIR = r"d:\2nd move from os\d\PRO R"
-sys.path.insert(0, BASE_DIR)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+BACKEND_DIR = os.path.join(BASE_DIR, "backend")
+SERVER_DIR = os.path.join(BASE_DIR, "server")
+for p in [BACKEND_DIR, SERVER_DIR, BASE_DIR]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 import retina_analyzer
 
 GT_PATH = os.path.join(BASE_DIR, "data", "heldout_test", "ground_truth.json")

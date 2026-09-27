@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DR-SHIELD AI | Explainable Retinal Screening Command Center (MathWorks SIH 2026)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <div class="brand-logo">D</div>
+            <div class="brand-text">
+                <h1>DR-SHIELD AI <span style="font-size:10.5px; font-weight:700; color:var(--primary-blue); background:#EFF4FA; padding:2px 8px; border-radius:12px; border:1px solid var(--card-border); margin-left:6px;">MathWorks PS 26038</span></h1>
+                <p>Explainable Diabetic Retinopathy Screening Command Center | Rural India Tele-Triage</p>
+            </div>
+        </div>
+
+        <!-- ROLE SWITCHER -->
+        <div class="role-switcher">
+            <button class="role-btn" id="roleField" onclick="setRole('field')">Field Mode (ASHA)</button>
+            <button class="role-btn active" id="roleClinical" onclick="setRole('clinical')">Clinical Mode (Ophthalmologist)</button>
+            <button class="role-btn" id="roleAdmin" onclick="setRole('admin')">District Admin & Simulink</button>
+        </div>
+
+        <div class="header-status">
+            <!-- VOICE GUIDANCE TOGGLE -->
+                        <!-- LANGUAGE SWITCHER -->
+            <div class="lang-switcher">
+                <button class="lang-btn active" id="langEN" onclick="setLanguage('en')" title="English">EN</button>
+                <button class="lang-btn" id="langHI" onclick="setLanguage('hi')" title="हिन्दी (Hindi)">HI</button>
+                <button class="lang-btn" id="langTA" onclick="setLanguage('ta')" title="தமிழ் (Tamil)">TA</button>
+                <button class="lang-btn" id="langTE" onclick="setLanguage('te')" title="తెలుగు (Telugu)">TE</button>
+            </div>
+            <!-- HIGH CONTRAST TOGGLE -->
+            <button class="btn-act" id="btnContrastToggle" style="background:#F1F5F9; color:var(--warning-amber); font-size:11px;" onclick="toggleHighContrast()" title="Toggle Clinical High Contrast / Reading Room Mode (H)">High Contrast</button>
+            <!-- HOTKEYS HELP -->
+            <button class="btn-act" id="btnHotkeysHelp" style="background:#F8FAFC; color:#64748B; border:1px solid var(--card-border); font-size:11px;" onclick="openHotkeysModal()" title="Rapid Screening Keyboard Shortcuts (?)">Shortcuts</button>
+<button class="btn-act" id="btnVoiceToggle" style="background:#F8FAFC; color:var(--primary-blue); border:1px solid var(--card-border); font-size:11px;" onclick="toggleVoice()">Voice: ON</button>
+            <!-- NETWORK STATUS & RENDER BACKEND LINK -->
+            <button class="btn-act" id="btnApiConfig" style="background:#EFF4FA; color:var(--primary-blue); border:1px solid #BFD3E6; font-size:11px; font-weight:600;" onclick="configureBackendUrl()" title="Configure Render Backend API Link (e.g. https://your-app.onrender.com)">🔗 API Link</button>
+            <div class="net-badge" id="netBadge" onclick="toggleNetwork()" title="Click to toggle Online/Offline Edge mode">
+                <div class="pulse-dot" id="pulseDot"></div>
+                <span id="netText">Online: 2.4 Mbps (PHC Uplink)</span>
+            </div>
+            <button class="btn-act" id="btnOpenExplorer" style="background:#0284C7; color:#FFFFFF; font-size:11px; font-weight:700; border:none;" onclick="openVirtualExplorerModal()" title="Browse Predefined Retinal Stages (Grades 0-4 and Rejection Tests)">&#128193; Virtual Explorer</button>
+            <button class="btn-act" style="background:var(--healthy-green); color:#FFFFFF; font-size:11px; font-weight:700;" onclick="openPatientInputModal(false)">+ New Patient</button>
+            <button class="btn-act" style="background:var(--primary-blue); color:#FFFFFF; font-size:11px;" onclick="openReportModal()">View Report</button>
+        </div>
+    </header>
+
+    <!-- CORE CLINICAL WORKFLOW RIBBON: QUALITY -> ENHANCE -> DETECT -> GRADE -> EXPLAIN -> TRIAGE -> REVIEW -> REPORT -> SIMULATE -->
+    <div class="pipeline-ribbon">
+        <span class="p-step active">1. QUALITY GATE</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active">2. ADAPTIVE ENHANCE</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active">3. LESION DETECT</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active">4. ICDR GRADE</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active" style="color:var(--ai-cyan); border-color:#A5F3FC; background:#ECFEFF;">5. EXPLAINABLE AI</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active">6. TELE-TRIAGE</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active" style="color:var(--primary-blue); border-color:#BFD3E6;">7. HUMAN REVIEW</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active">8. CLINICAL REPORT</span><span class="p-sep">&rarr;</span>
+        <span class="p-step active" style="color:var(--medical-teal); border-color:#99F6E4; background:#F0FDFA;">9. 100K SIMULINK</span>
+    </div>
+
+
+    <div class="main-layout">
+        <!-- SIDEBAR: PRIORITY QUEUE + LIVE DROPZONE -->
+        <div class="sidebar">
+            <button class="btn-act" style="width:100%; justify-content:center; background:var(--healthy-green); color:#FFFFFF; padding:9px 12px; font-size:11.5px; font-weight:700; margin-bottom:12px; box-shadow:0 2px 10px rgba(5,150,105,0.35);" onclick="openPatientInputModal(false)">+ Register New Patient</button>
+            <div>
+                <div class="section-header">
+                    <span>Priority Triage Queue</span>
+                    <span style="font-size: 9.5px; color: var(--accent-cyan);">Sorted by Risk</span>
+                </div>
+                <div class="queue-list" id="queueList"></div>
+            </div>
+
+            <!-- LIVE FILE UPLOAD / DRAG-AND-DROP DROPZONE -->
+            <div>
+                <button class="btn-act" style="width:100%; justify-content:center; background:#EFF4FA; color:var(--primary-blue); border:1px solid #BFD3E6; padding:8px 12px; font-size:11px; font-weight:700; margin-bottom:10px; border-radius:6px;" onclick="openVirtualExplorerModal()">&#128193; Browse Predefined Sample Retinas</button>
+            
+                <div class="section-header">
+                    <span>Analyze Custom Retina</span>
+                    <span style="font-size: 9.5px; color: #10b981;">Real-Time</span>
+                </div>
+                <div class="dropzone" id="fileDropzone" onclick="document.getElementById('fileInput').click()">
+                    <span style="font-size: 20px;"></span>
+                    <div style="font-size: 11.5px; font-weight:700; color:#475569; margin-top:4px;">Drop Any Fundus Image</div>
+                    <div style="font-size: 9.5px; color:#64748b;">or click to browse local files (JPG/PNG)</div>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileUpload(event)">
+                </div>
+            </div>
+
+            <!-- RURAL OFFLINE QUEUE -->
+            <div style="background: #F8FAFC; border: 1px solid #1e293b; border-radius: 9px; padding: 10px; margin-top: auto;">
+                <div style="font-size: 10.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Offline Rural Hub</div>
+                <div style="font-size: 11px; display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 6px;">
+                    <span>Pending Local Sync: <b id="pendingSyncCount" style="color:var(--warning-amber);">3 Cases</b></span>
+                    <span style="color:var(--healthy-green);">9 Synced</span>
+                </div>
+                <button class="btn-act" style="width:100%; justify-content:center; background:var(--primary-blue); color:#FFFFFF; padding:6px; font-size:10.5px;" onclick="syncOfflineQueue()">Sync Offline Queue</button>
+                <div id="syncProg" style="height:3px; background:#F1F5F9; border-radius:2px; margin-top:6px; display:none; overflow:hidden;">
+                    <div style="width:100%; height:100%; background:var(--healthy-green); animation:syncMove 1s infinite linear;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN WORKSPACE -->
+        <div class="content">
+            <!-- ROLE 1: FIELD MODE (ASHA) -->
+            <div id="view-field" style="display: none; flex-direction: column; gap: 16px;">
+                <div style="background:#FFFFFF; border:1px solid var(--card-border); border-radius:12px; padding:20px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px;">
+                    <h2 style="font-size: 20px; font-weight:800; color:var(--primary-blue);"> DRISHTI AI MOBILE SCREENING (FIELD MODE)</h2>
+                    <p style="color:#64748B; font-size:12.5px; max-width:540px;">Simplified automated screening for rural Primary Health Centre workers using portable handheld cameras.</p>
+                    
+                    <button class="btn-act" style="background:var(--primary-blue); color:#FFFFFF; padding:12px 24px; font-size:13.5px;" onclick="simulateFieldCapture()">Capture Retinal Scan</button>
+                    <button class="btn-act" style="background:var(--healthy-green); color:#FFFFFF; padding:10px 18px; font-size:12.5px; font-weight:700;" onclick="openPatientInputModal(false)">Enter Clinical Data</button>
+
+                    <div style="background:#F8FAFC; border:1px solid var(--card-border); border-radius:10px; padding:16px; width:100%; max-width:480px; text-align:left; display:flex; flex-direction:column; gap:8px;">
+                        <div style="font-size:11px; color:#64748b; font-weight:700;">STEP 1: EDGE QUALITY ASSESSMENT</div>
+                        <div style="font-size:15px; font-weight:800; color:var(--healthy-green);" id="fieldQStatus"> IMAGE QUALITY: GOOD</div>
+                        
+                        <div style="font-size:11px; color:#64748b; font-weight:700; margin-top:6px;">STEP 2: RAPID EDGE AI TRIAGE</div>
+                        <button class="btn-act" style="background:var(--healthy-green); color:#FFFFFF; justify-content:center; padding:10px;" onclick="runFieldAI()">Run AI Screening</button>
+                        
+                        <div style="font-size:11px; color:#64748b; font-weight:700; margin-top:6px;">STEP 3: ACTIONABLE FIELD RESULT</div>
+                        <div id="fieldResultBox" style="background:#F1F5F9; padding:10px; border-radius:7px; font-weight:800; font-size:14px; color:var(--warning-amber);">
+                             SPECIALIST REVIEW RECOMMENDED (Moderate NPDR)
+                        </div>
+                        <button class="btn-act" style="background:var(--primary-blue); color:#FFFFFF; justify-content:center; padding:10px; margin-top:4px;" onclick="sendToHub()">Send to District Hub</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROLE 2: CLINICAL MODE (OPHTHALMOLOGIST) -->
+            <div id="view-clinical" style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- ACTIVE PATIENT DEMOGRAPHICS & QUICK EDIT BAR -->
+                <div style="background:#FFFFFF; border:1px solid var(--card-border); box-shadow:var(--shadow-card); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <div style="font-size:14px; font-weight:800; color:#0F172A;" id="hdrPatName">Ganesh Kulkarni</div>
+                        <div style="font-size:11px; font-family:'JetBrains Mono'; color:var(--primary-blue); background:#F8FAFC; padding:2px 8px; border-radius:4px; border:1px solid var(--card-border);" id="hdrPatId">PAT_003_MODERATE</div>
+                        <div style="font-size:11.5px; color:#64748B;" id="hdrPatMeta">Age: 58 | Male | DM: 11 Yrs | HbA1c: 8.4% | BP: 142/88 | Eye: OD (Right) | BCVA: 6/18</div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-act" style="background:#F1F5F9; color:#475569; padding:5px 10px; font-size:10.5px;" onclick="openPatientInputModal(true)">Edit Clinical Data</button>
+                        <button class="btn-act" style="background:var(--healthy-green); color:#FFFFFF; padding:5px 10px; font-size:10.5px;" onclick="openPatientInputModal(false)">+ New Patient</button>
+                    </div>
+                </div>
+
+                <!-- SMART FUNDUS QUALITY GATE -->
+                <div class="quality-card">
+                    <div class="quality-header">
+                        <div>
+                            <span style="font-size: 10.5px; text-transform:uppercase; color:#64748b; font-weight:800; letter-spacing:0.5px;">1. Smart Fundus Image Quality Gate</span>
+                            <h3 style="font-size: 15px; font-weight:800; margin-top:2px;" id="qCardTitle">Camera Alignment & Focus Evaluation</h3>
+                        </div>
+                        <div class="q-status-badge q-good" id="qBadge"> IMAGE QUALITY: ACCEPTABLE</div>
+                    </div>
+
+                    <div class="q-metrics-row">
+                        <div class="q-metric-box"><span>Blur / Tenengrad Focus</span><b id="mBlur">41.8 (>15.0)</b></div>
+                        <div class="q-metric-box"><span>Illumination Balance</span><b id="mIllum">Optimal (0.46)</b></div>
+                        <div class="q-metric-box"><span>Retinal FoV Coverage</span><b id="mFoV">86.4% (>75%)</b></div>
+                        <div class="q-metric-box"><span>Corneal Glare Ratio</span><b id="mGlare">1.8% (&lt;15%)</b></div>
+                    </div>
+
+                    <!-- AI-GUIDED RECAPTURE GUIDANCE -->
+                    <div class="guidance-box guidance-enhance" id="qGuidance">
+                        <span style="font-size: 16px;"></span>
+                        <div>
+                            <b id="guidanceTitle">Adaptive Auto-Enhancement Active:</b>
+                            <span id="guidanceText">Borderline illumination normalized via CLAHE in CIE L*a*b* space. Proceeding to clinical classification.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REFERABLE DR BANNER -->
+                <div class="referable-banner ref-urgent" id="refBanner">
+                    <div>
+                        <span style="font-size:10.5px; text-transform:uppercase; letter-spacing:1px; font-weight:800; color:#fca5a5;">REFERABLE DR STATUS</span>
+                        <div class="ref-title" id="refTitle"> REFER TO OPHTHALMOLOGIST</div>
+                        <div class="ref-sub" id="refReason">Priority: HIGH | Reason: Level 2 Moderate NPDR + High DME Risk near foveal zone</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:10.5px; color:#475569; text-transform:uppercase;">ICDR Severity Staging</div>
+                        <div style="font-size:18px; font-weight:800; color:#FFFFFF;" id="icdrGrade">LEVEL 2 — MODERATE NPDR</div>
+                        <div style="font-size:12px; font-weight:700; color:var(--primary-blue); margin-top:2px;" id="drDamagePercent">Retinopathy Damage: 48.5%</div>
+                    </div>
+                </div>
+
+                <!-- REAL-TIME INTERACTIVE VIEWPORT & SPLIT-SLIDER -->
+                <div class="quality-card" style="padding:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size: 13px; font-weight:800; display:flex; align-items:center; gap:8px;">
+                            <span> Real-Time Interactive Viewport</span>
+                            <span style="font-size:10.5px; font-weight:normal; color:var(--ai-cyan);">(Drag divider across canvas to wipe Before / Enhanced)</span>
+                        </span>
+                        <span style="font-size: 11px; font-family:'JetBrains Mono'; color:var(--healthy-green);" id="canvasModeLabel">SPLIT: RAW (LEFT) vs ENHANCED (RIGHT)</span>
+                    </div>
+
+                    <div class="viewport-box" id="viewportBox">
+                        <canvas id="mainCanvas" width="512" height="512"></canvas>
+                        <div class="split-curtain" id="splitCurtain" style="left: 50%;">
+                            <div class="split-handle"></div>
+                        </div>
+                    </div>
+
+                    <!-- REAL-TIME PARAMETER & LESION CONTROL TOOLBAR -->
+                    <div class="live-control-toolbar" style="margin-top:8px;">
+                        <div class="ctrl-item">
+                            <button class="btn-act" style="background:#FFFFFF; border:1px solid var(--card-border); color:var(--primary-blue); font-size:10.5px; padding:3px 8px; border-radius:5px;" onclick="openVirtualExplorerModal()" title="Select standard clinical fundus cases">&#128193; Choose Sample Stage</button>
+                        <span>CLAHE Clip:</span>
+                            <input type="range" id="sliderClip" min="0.01" max="0.05" step="0.005" value="0.02" oninput="updateRealtimeCanvas()">
+                            <span id="valClip" style="color:var(--ai-cyan);">0.020</span>
+                        </div>
+                        <div class="ctrl-item">
+                            <span>Illum. Flattening:</span>
+                            <input type="range" id="sliderFlatten" min="0" max="100" step="5" value="75" oninput="updateRealtimeCanvas()">
+                            <span id="valFlatten" style="color:var(--ai-cyan);">75%</span>
+                        </div>
+                                                <div class="ctrl-item">
+                            <span>Grad-CAM Mode:</span>
+                            <button class="btn-act" id="btnGradcamToggle" onclick="toggleGradcamMode()" style="background:#F8FAFC; border:1px solid #06b6d4; color:var(--primary-blue); font-size:10.5px; padding:3px 8px; border-radius:6px;" title="Cycle Grad-CAM++ (Second Order) / Standard / Off (G)"> Grad-CAM++ (2nd Order)</button>
+                        </div>
+<div class="ctrl-item">
+                            <span>Grad-CAM Heatmap:</span>
+                            <input type="range" id="sliderHeatmap" min="0" max="100" step="5" value="50" oninput="updateRealtimeCanvas()">
+                            <span id="valHeatmap" style="color:var(--ai-cyan);">50%</span>
+                        </div>
+                        <div class="ctrl-item">
+                            <label><input type="checkbox" id="chkVessels" checked onchange="updateRealtimeCanvas()"> Vessels (DRIVE)</label>
+                        </div>
+                        <div class="ctrl-item">
+                            <label><input type="checkbox" id="chkMAs" checked onchange="updateRealtimeCanvas()"> MAs (Magenta)</label>
+                        </div>
+                        <div class="ctrl-item">
+                            <label><input type="checkbox" id="chkExudates" checked onchange="updateRealtimeCanvas()"> Exudates (Yellow)</label>
+                        </div>
+                        <div class="ctrl-item">
+                            <label><input type="checkbox" id="chkHemo" checked onchange="updateRealtimeCanvas()"> Hemo (Red)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LESION EVIDENCE & RELIABILITY METER -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                    <div class="quality-card">
+                        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">6. EVIDENCE-TO-DECISION CORRELATION</div>
+                        <div style="font-size:12px; color:#475569; line-height:1.5; margin-top:4px;" id="evidenceNarrative">
+                             Microaneurysms detected with sub-pixel parabolic peak interpolation<br>
+                             Hard exudates localized near foveal center (CSME positive)<br>
+                             Grad-CAM attention hotspots precisely align with hemorrhagic clusters
+                        </div>
+                        <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; font-family:'JetBrains Mono'; font-size:11px; margin-top:8px;">
+                            <div class="q-metric-box"><span>DR Damage</span><b id="liveDRDamage" style="color:var(--ai-cyan);">48.5%</b></div>
+                            <div class="q-metric-box"><span>MAs</span><b id="liveMAs" style="color:var(--primary-blue);">19</b></div>
+                            <div class="q-metric-box"><span>Hemo</span><b id="liveHemo" style="color:var(--danger-red);">18</b></div>
+                            <div class="q-metric-box"><span>Exudates</span><b id="liveExudates" style="color:var(--warning-amber);">12</b></div>
+                            <div class="q-metric-box"><span>CSME</span><b id="liveCSME" style="color:#f43f5e;">0.12 DD</b></div>
+                        </div>
+                    </div>
+
+                    <div class="quality-card">
+                        <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">8. AI RELIABILITY & CALIBRATION METER</div>
+                        <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                            <div style="display:flex; justify-content:space-between; font-size:11px;">
+                                <span>Model Confidence (Temperature Scaled):</span>
+                                <b id="lblRelConf" style="color:var(--ai-cyan);">91.5%</b>
+                            </div>
+                            <div style="width:100%; height:5px; background:#F8FAFC; border-radius:3px; overflow:hidden;">
+                                <div id="barRelConf" style="width:91.5%; height:100%; background:#06b6d4;"></div>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:2px;">
+                                <span>Image Quality Factor:</span>
+                                <b id="lblRelQual" style="color:#10b981;">88.0%</b>
+                            </div>
+                            <div style="width:100%; height:5px; background:#F8FAFC; border-radius:3px; overflow:hidden;">
+                                <div id="barRelQual" style="width:88.0%; height:100%; background:var(--healthy-green);"></div>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:2px;">
+                                <span>Explanation Agreement:</span>
+                                <b id="lblRelAgr" style="color:#8b5cf6;">92.0%</b>
+                            </div>
+                            <div style="width:100%; height:5px; background:#F8FAFC; border-radius:3px; overflow:hidden;">
+                                <div id="barRelAgr" style="width:92.0%; height:100%; background:#8b5cf6;"></div>
+                            </div>
+                        </div>
+                        <div style="margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; font-weight:700;">Overall Reliability:</span>
+                            <span class="q-status-badge q-good" id="relStatusBadge"> HIGH RELIABILITY</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HUMAN IN THE LOOP REVIEW & STOPWATCH -->
+                <div class="review-console">
+                    <div>
+                        <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">9. HUMAN-IN-THE-LOOP OPHTHALMOLOGIST CONSOLE</div>
+                        <h4 style="font-size:15px; font-weight:800; margin-top:2px;">30-Second Rapid Validation</h4>
+                    </div>
+
+                    <div class="stopwatch">
+                        <span style="font-size:10.5px; color:#64748B;">STOPWATCH:</span>
+                        <span class="stopwatch-time" id="reviewStopwatch">00.0s</span>
+                        <button onclick="toggleStopwatch()" style="background:none; border:none; color:var(--accent-cyan); cursor:pointer; font-size:12px;">/</button>
+                        <span style="font-size:9.5px; color:#10b981; font-weight:700;">[&lt;30s TARGET]</span>
+                    </div>
+
+                    <div class="action-group">
+                        <button class="btn-act btn-confirm" onclick="confirmDiagnosis()">Accept AI Result</button>
+                        <button class="btn-act btn-modify" onclick="modifyGradePrompt()">Modify Grade</button>
+                        <button class="btn-act btn-recapture" onclick="triggerRecapture()">Request Recapture</button>
+                        <button class="btn-act btn-refer" onclick="referSpecialist()">→ Refer Patient</button>
+                    </div>
+                </div>
+            </div>
+            <!-- ROLE 3: DISTRICT ADMIN & SIMULINK MODE -->
+            <div id="view-admin" style="display: none; flex-direction: column; gap: 16px;">
+                
+                <div style="background:#FFFFFF; border:1px solid var(--card-border); box-shadow:var(--shadow-card); border-radius:12px; padding:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div>
+                            <span style="font-size:10.5px; text-transform:uppercase; color:#64748b; font-weight:800;">12. District Screening Intelligence</span>
+                            <h3 style="font-size:16px; font-weight:800; margin-top:2px;">Nanded District Retinal Tele-Program (Annual Monitoring)</h3>
+                        </div>
+                        <div class="q-status-badge q-good"> 25 PHCs & 3 Mobile Vans Connected</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(6, 1fr); gap:10px;">
+                        <div class="q-metric-box"><span>Patients Screened</span><b style="color:var(--primary-blue); font-size:18px;">12,458</b></div>
+                        <div class="q-metric-box"><span>Referable DR Cases</span><b style="color:var(--danger-red); font-size:18px;">2,142</b></div>
+                        <div class="q-metric-box"><span>High Priority Queue</span><b style="color:#ef4444; font-size:18px;">318</b></div>
+                        <div class="q-metric-box"><span>Recaptures Advised</span><b style="color:var(--warning-amber); font-size:18px;">672</b></div>
+                        <div class="q-metric-box"><span>Avg AI Pipeline</span><b style="color:var(--healthy-green); font-size:18px;">1.2s</b></div>
+                        <div class="q-metric-box"><span>Avg Review Time</span><b style="color:var(--medical-teal); font-size:18px;">18.4s</b></div>
+                    </div>
+                </div>
+
+                <!-- SIMULINK INTERACTIVE QUEUING ENGINE & LIVE GRAPH CANVAS -->
+                <div style="background:#FFFFFF; border:1px solid var(--card-border); box-shadow:var(--shadow-card); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <span style="font-size:10.5px; text-transform:uppercase; color:#64748b; font-weight:800;">14 & 15. Real-Time Simulink Resource Optimization Engine</span>
+                            <h3 style="font-size:16px; font-weight:800; margin-top:2px;">District Dynamic Queuing Model (100,000+ Target)</h3>
+                        </div>
+                        <span style="font-size:11px; color:var(--primary-blue); font-family:'JetBrains Mono';">telemed_dr_screening.slx (Live JS Solver)</span>
+                    </div>
+
+                    <div class="sim-control-box">
+                        <div class="sim-slider-group">
+                            <label><span>Patients / Day:</span> <b id="lblPatientsDay" style="color:var(--primary-blue);">400</b></label>
+                            <input type="range" id="sliderPatients" min="100" max="600" step="25" value="400" oninput="runSimulinkEngine()">
+                            <span style="font-size:9.5px; color:#64748b;">Annual Cohort: 25,000 to 150,000</span>
+                        </div>
+                        <div class="sim-slider-group">
+                            <label><span>Rural Bandwidth:</span> <b id="lblBandwidth" style="color:var(--healthy-green);">2.4 Mbps</b></label>
+                            <input type="range" id="sliderBw" min="0.5" max="10" step="0.5" value="2.4" oninput="runSimulinkEngine()">
+                            <span style="font-size:9.5px; color:#64748b;">Cellular Uplink Speed</span>
+                        </div>
+                        <div class="sim-slider-group">
+                            <label><span>District Specialists:</span> <b id="lblDoctors" style="color:var(--warning-amber);">2 Doctors</b></label>
+                            <input type="range" id="sliderDocs" min="1" max="6" step="1" value="2" oninput="runSimulinkEngine()">
+                            <span style="font-size:9.5px; color:#64748b;">Ophthalmologist Reading Pool</span>
+                        </div>
+                    </div>
+
+                    <!-- LIVE SIMULINK CANVAS CHART -->
+                    <div style="background:#FFFFFF; border:1px solid var(--card-border); border-radius:10px; padding:12px;">
+                        <canvas id="simulinkCanvas" width="800" height="220" style="width:100%; height:220px; display:block;"></canvas>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; font-family:'JetBrains Mono';">
+                        <div class="q-metric-box"><span>Annual Screening Capacity</span><b id="simCap" style="color:var(--healthy-green); font-size:16px;">100,000</b></div>
+                        <div class="q-metric-box"><span>Average Patient Queue Delay</span><b id="simWait" style="color:var(--primary-blue); font-size:16px;">0.4 hrs (No Backlog)</b></div>
+                        <div class="q-metric-box"><span>Annual Cellular Data Saved</span><b id="simDataSaved" style="color:var(--medical-teal); font-size:16px;">431.3 GB (75.0%)</b></div>
+                        <div class="q-metric-box"><span>Doctor Throughput Multiplier</span><b id="simMult" style="color:var(--healthy-green); font-size:16px;">7.0x (30s Review)</b></div>
+                    </div>
+
+                    <div style="background:#F8FAFC; border-left:4px solid #38bdf8; padding:12px; border-radius:0 7px 7px 0; font-size:12px; line-height:1.5;" id="whatIfAdvice">
+                        <b> AI Resource Planning Advisory:</b> Target of 100,000+ patients ACHIEVED! Current configuration of <b>2 Specialists</b> and <b>2.4 Mbps</b> cellular link accommodates <b>100,000 patients/year</b> with negligible queue wait time.
+                    </div>
+                </div>
+
+                <!-- MODEL BENCHMARKS & AUDIT TRAIL -->
+                <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:14px;">
+                    <div style="background:#FFFFFF; border:1px solid var(--card-border); box-shadow:var(--shadow-card); border-radius:12px; padding:14px;">
+                        <span style="font-size:10.5px; text-transform:uppercase; color:#64748b; font-weight:800;">16. Held-Out Indian Benchmark Validation</span>
+                        <table style="width:100%; border-collapse:collapse; font-size:11px; font-family:'JetBrains Mono'; margin-top:8px;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #334155; color:#64748B; text-align:left;">
+                                    <th style="padding:5px;">Metric</th>
+                                    <th style="padding:5px;">Target</th>
+                                    <th style="padding:5px;">DRISHTI Pipeline</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom:1px solid #1e293b;">
+                                    <td style="padding:6px; color:#475569;">Referable Sensitivity</td>
+                                    <td style="padding:6px;">&gt; 90.0%</td>
+                                    <td style="padding:6px; color:var(--healthy-green); font-weight:bold;">94.8%</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #1e293b;">
+                                    <td style="padding:6px; color:#475569;">Referable Specificity</td>
+                                    <td style="padding:6px;">&gt; 85.0%</td>
+                                    <td style="padding:6px; color:var(--healthy-green); font-weight:bold;">92.4%</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #1e293b;">
+                                    <td style="padding:6px; color:#475569;">AUC-ROC</td>
+                                    <td style="padding:6px;">&gt; 0.900</td>
+                                    <td style="padding:6px; color:var(--primary-blue);">0.981</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:6px; color:#475569;">Quadratic Kappa</td>
+                                    <td style="padding:6px;">&gt; 0.800</td>
+                                    <td style="padding:6px; color:var(--primary-blue);">0.916</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="background:#FFFFFF; border:1px solid var(--card-border); box-shadow:var(--shadow-card); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:6px;">
+                        <span style="font-size:10.5px; text-transform:uppercase; color:#64748b; font-weight:800;">19. Live Clinical Audit Log</span>
+                        <div style="background:#F8FAFC; border:1px solid var(--card-border); border-radius:7px; padding:8px 10px; font-family:'JetBrains Mono'; font-size:10px; color:#475569; display:flex; flex-direction:column; gap:4px; max-height:130px; overflow-y:auto;" id="auditLog">
+                            <div><span style="color:#64748b;">10:24:02</span> — Fundus capture acquired at Nanded PHC #4</div>
+                            <div><span style="color:#64748b;">10:24:04</span> — Image Quality Gate: PASS (Focus: 41.8, Glare: 1.8%)</div>
+                            <div><span style="color:#64748b;">10:24:06</span> — Edge AI completed: Level 2 Moderate NPDR (91.5%)</div>
+                            <div><span style="color:#64748b;">10:25:12</span> — Prioritized as Priority 1 (High DME Risk)</div>
+                            <div><span style="color:#64748b;">10:26:45</span> — Clinical report generated & signed</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- PATIENT DATA INPUT SPACE MODAL -->
+    <div class="modal" id="patientInputModal" onclick="closePatientInputModal(event)">
+        <div class="input-sheet" onclick="event.stopPropagation()">
+            <!-- HEADER -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--card-border); padding-bottom:12px;">
+                <div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:18px;"></span>
+                        <h2 style="font-size:18px; font-weight:800; color:var(--primary-blue);" id="inputModalTitle">PATIENT INTAKE & CLINICAL DATA ENTRY SPACE</h2>
+                    </div>
+                    <div style="font-size:11px; color:#64748B; margin-top:2px;">Rural Health Center Screening Portal | Ayushman Bharat Health Account (ABDM) Compatible</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-act" style="background:var(--primary-blue); color:#FFFFFF; font-size:10.5px;" onclick="quickAutofillPatientData()"> Quick Autofill Demo Patient</button>
+                    <button class="btn-act" style="background:#F1F5F9; color:#475569; border:1px solid var(--card-border); font-size:16px; padding:2px 8px;" onclick="closePatientInputModal()">&times;</button>
+                </div>
+            </div>
+
+            <!-- SECTION 1: DEMOGRAPHICS -->
+            <div class="section-tag">
+                <span>1. Patient Demographics & Health Identity</span>
+                <span style="color:#64748b; font-weight:normal; font-size:9.5px;">ABDM Integration</span>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Patient Full Name *</label>
+                    <input type="text" id="inpName" class="form-control" placeholder="e.g. Ramesh Verma" value="Ramesh Verma" required>
+                </div>
+                <div class="form-group">
+                    <label>Age (Years) *</label>
+                    <input type="number" id="inpAge" class="form-control" min="18" max="100" value="56" required>
+                </div>
+                <div class="form-group">
+                    <label>Gender *</label>
+                    <select id="inpGender" class="form-control">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ABHA ID / Health Token</label>
+                    <input type="text" id="inpABHA" class="form-control" placeholder="ABHA-9182-4521-0089" value="ABHA-2026-9814">
+                </div>
+                <div class="form-group">
+                    <label>Primary Health Centre (PHC)</label>
+                    <input type="text" id="inpPHC" class="form-control" value="Nanded PHC #04 - Rural Center">
+                </div>
+                <div class="form-group">
+                    <label>Contact Phone</label>
+                    <input type="tel" id="inpPhone" class="form-control" placeholder="+91 98230 45612" value="+91 98230 45612">
+                </div>
+            </div>
+
+            <!-- SECTION 2: SYSTEMIC BIOMARKERS -->
+            <div class="section-tag">
+                <span>2. Systemic Metabolic & Diabetes Profile</span>
+                <span style="color:var(--healthy-green); font-weight:normal; font-size:9.5px;">Biomarker Risk Engine</span>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Diabetes Duration (Years)</label>
+                    <input type="number" id="inpDuration" class="form-control" min="0" max="60" value="9" oninput="updateRiskPreview()">
+                </div>
+                <div class="form-group">
+                    <label>Diabetes Classification</label>
+                    <select id="inpDMType" class="form-control">
+                        <option value="Type 2 DM (Oral Hypoglycemics)">Type 2 DM (Oral Hypoglycemics)</option>
+                        <option value="Type 2 DM (Insulin Dependent)">Type 2 DM (Insulin Dependent)</option>
+                        <option value="Type 1 DM">Type 1 DM</option>
+                        <option value="Pre-Diabetes / Borderline">Pre-Diabetes / Borderline</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>HbA1c Level (%) *</label>
+                    <input type="number" id="inpHbA1c" class="form-control" step="0.1" min="4.0" max="18.0" value="8.4" oninput="updateRiskPreview()">
+                </div>
+                <div class="form-group">
+                    <label>Systolic Blood Pressure (mmHg)</label>
+                    <input type="number" id="inpBPSys" class="form-control" min="70" max="240" value="142" oninput="updateRiskPreview()">
+                </div>
+                <div class="form-group">
+                    <label>Diastolic Blood Pressure (mmHg)</label>
+                    <input type="number" id="inpBPDia" class="form-control" min="40" max="140" value="88" oninput="updateRiskPreview()">
+                </div>
+                <div class="form-group">
+                    <label>Random Blood Sugar (mg/dL)</label>
+                    <input type="number" id="inpRBS" class="form-control" min="50" max="600" value="210">
+                </div>
+            </div>
+
+            <!-- SECTION 3: OPHTHALMIC DATA -->
+            <div class="section-tag">
+                <span>3. Ophthalmic Examination & Clinical Symptoms</span>
+                <span style="color:#64748b; font-weight:normal; font-size:9.5px;">Laterality & Acuity</span>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Eye Examined *</label>
+                    <select id="inpEye" class="form-control">
+                        <option value="OD (Right Eye)">Right Eye (OD)</option>
+                        <option value="OS (Left Eye)">Left Eye (OS)</option>
+                        <option value="OU (Bilateral)">Bilateral (OU)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Visual Acuity (Snellen)</label>
+                    <select id="inpVA" class="form-control">
+                        <option value="6/6 (Normal)">6/6 (Normal)</option>
+                        <option value="6/9 (Mild Reduction)">6/9 (Mild Reduction)</option>
+                        <option value="6/12 (Moderate)">6/12 (Moderate)</option>
+                        <option value="6/18 (Significant Loss)" selected>6/18 (Significant Loss)</option>
+                        <option value="6/24">6/24</option>
+                        <option value="6/36">6/36</option>
+                        <option value="6/60 (Severe)">6/60 (Severe Impairment)</option>
+                        <option value="Counting Fingers / Hand Movements">Counting Fingers / Hand Movements</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Chief Visual Complaint</label>
+                    <select id="inpSymptoms" class="form-control">
+                        <option value="Blurry central vision & reading difficulty" selected>Blurry central vision & reading difficulty</option>
+                        <option value="Floaters & dark spots">Floaters & dark spots</option>
+                        <option value="Distorted lines (Metamorphopsia)">Distorted lines (Metamorphopsia)</option>
+                        <option value="Sudden painless vision loss">Sudden painless vision loss</option>
+                        <option value="Asymptomatic routine annual screen">Asymptomatic routine annual screen</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 3;">
+                    <label>Prior Retinal Interventions / Medical History</label>
+                    <input type="text" id="inpPriorTreat" class="form-control" placeholder="None, or previous PRP Laser / Anti-VEGF / Cataract Surgery" value="No prior laser. Diagnosed hypertension on amlodipine.">
+                </div>
+            </div>
+
+            <!-- SECTION 4: FUNDUS IMAGE SOURCE & PRESET SELECTION -->
+            <div class="section-tag">
+                <span>4. Select Retinal Presentation / Predefined Preset</span>
+                <span style="color:var(--primary-blue); font-weight:700; font-size:10.5px;">Click any preset to auto-attach retinal scan</span>
+            </div>
+            
+            <div style="font-size:11.5px; color:#475569; margin-top:-4px;">
+                Choose one of the predefined patient retinal presentations below. The fundus scan will be automatically loaded into the AI screening engine upon registration:
+            </div>
+
+            <!-- PREDEFINED RETINAL PRESETS GRID (SHOWN IN FRONT OF USER) -->
+            <div class="preset-gallery-grid" id="modalPresetGrid">
+                <!-- Preset Cards injected dynamically -->
+            </div>
+
+            <!-- ACTIVE PRESET ATTACHMENT DETAILS -->
+            <div style="display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:center; background:#F8FAFC; border:1.5px solid var(--card-border); border-radius:8px; padding:10px 14px; margin-top:6px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <img id="presetAttachedThumb" src="sample_images/user_preset_fundus_pat003.png" style="width:52px; height:52px; border-radius:6px; object-fit:contain; border:1px solid #DCE6F0; background:#0B1324; padding:2px; filter:contrast(1.1) brightness(1.08);">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <b style="font-size:12.5px; color:#0F172A;" id="presetAttachedTitle">User Fundus: Moderate NPDR (PAT_003)</b>
+                            <span id="presetAttachedBadge" style="font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:4px; background:#F97316; color:#FFF;">Grade 2 - Moderate</span>
+                        </div>
+                        <div style="font-size:10.5px; color:#155EEF; font-family:'JetBrains Mono',monospace; margin-top:2px;" id="presetAttachedFile">sample_images/user_preset_fundus_pat003.png</div>
+                        <div style="font-size:10px; color:#64748B; margin-top:2px;" id="presetAttachedDesc">Attached: Microaneurysms + blot hemorrhages + hard exudates (CSME Risk).</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button type="button" class="btn-act" style="background:#FFFFFF; border:1px solid var(--card-border); color:var(--primary-blue); font-size:11px;" onclick="openVirtualExplorerModal()">&#128193; Full Explorer</button>
+                    <button type="button" class="btn-act" style="background:#FFFFFF; border:1px solid var(--card-border); color:#475569; font-size:11px;" onclick="document.getElementById('inpCustomFile').click()">&#128228; Or Upload Custom</button>
+                    <input type="file" id="inpCustomFile" accept="image/*" style="display:none;" onchange="handleModalCustomUpload(event)">
+                </div>
+            </div>
+
+            <input type="hidden" id="inpSelectedPresetId" value="user_preset_1">
+            
+            <!-- SYSTEMIC + RETINAL RISK PREVIEW BAR -->
+            <div style="background:#F8FAFC; border:1.5px solid var(--card-border); border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;" id="riskPreviewBox">
+                <div>
+                    <span style="font-size:10px; color:#64748B; text-transform:uppercase; font-weight:700;">Calculated Combined Microvascular Risk</span>
+                    <div style="font-size:13px; font-weight:800; color:var(--warning-amber);" id="riskPreviewTitle">&#9888; ELEVATED SYSTEMIC RISK (HbA1c: 8.4%, BP: 142/88)</div>
+                </div>
+                <div style="font-size:11px; color:#475569; text-align:right;">
+                    <div>Estimated Referral Urgency: <b style="color:#ef4444;" id="riskPreviewUrgency">PRIORITY 1 (4-6 Weeks)</b></div>
+                </div>
+            </div>
+
+            <!-- FOOTER BUTTONS -->
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:6px;">
+                <button class="btn-act" style="background:#F1F5F9; color:#475569; border:1px solid var(--card-border);" onclick="closePatientInputModal()">Cancel</button>
+                <button class="btn-act" style="background:var(--healthy-green); color:#FFFFFF; font-weight:800; padding:10px 20px; font-size:13px; " onclick="submitPatientInputForm()">Run AI Screening & Enroll</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- REPORT MODAL -->
+    <div class="modal" id="reportModal" onclick="closeReportModal(event)">
+        <div class="report-sheet" onclick="event.stopPropagation()">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0f172a; padding-bottom:10px;">
+                <div>
+                    <h2 style="font-size:20px; font-weight:800; color:#0284c7;">DRISHTI AI RETINAL SCREENING REPORT</h2>
+                    <div style="font-size:11.5px; color:#64748b;">Autonomous Rural Diabetic Retinopathy Tele-Triage System</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-family:'JetBrains Mono'; font-weight:700; font-size:12px;" id="repCaseId">CASE ID: DR-2026-00128</div>
+                    <div style="font-size:10.5px; color:#64748b;" id="repDate">Date: 2026-09-05 | Nanded PHC #04</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#f8fafc; padding:10px; border-radius:7px;">
+                <div>
+                    <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">Patient Token</div>
+                    <div style="font-size:12.5px; font-weight:700;" id="repPatId">PAT_003_MODERATE</div>
+                    <div style="font-size:11px; color:#475569; margin-top:2px;" id="repDemographics">Age: 58 | Sex: M | Duration: 11 Yrs | HbA1c: 8.4% | BP: 142/88 | Eye: OD</div>
+                </div>
+                <div>
+                    <div style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">Image Quality Gate</div>
+                    <div style="font-size:12.5px; font-weight:700; color:#059669;" id="repQuality">ACCEPTABLE (Focus: 41.8, Glare: 1.8%)</div>
+                    <div style="font-size:11px; color:#64748b;">Handheld 45° Non-Mydriatic Fundus</div>
+                </div>
+            </div>
+
+            <div style="border:1.5px solid #0f172a; border-radius:7px; padding:12px; background:#f0fdf4;" id="repResultCard">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:#059669;">ICDR DR Severity Staging</div>
+                        <div style="font-size:17px; font-weight:800; color:#0f172a;" id="repGrade">LEVEL 2 — MODERATE NPDR</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:#dc2626;">Referable Status</div>
+                        <div style="font-size:16px; font-weight:800; color:#dc2626;" id="repReferable">YES (REFER TO SPECIALIST)</div>
+                    </div>
+                </div>
+                <div style="margin-top:8px; font-size:11.5px; color:#334155; line-height:1.4;" id="repRationale">
+                    Microaneurysms (19) and intraretinal blot hemorrhages (18) detected. Hard exudates present within 0.12 DD of fovea (CSME Positive).
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; font-family:'JetBrains Mono'; font-size:11px;">
+                <div style="background:#f1f5f9; padding:7px; border-radius:5px;">MAs: <b id="repMAs">19</b></div>
+                <div style="background:#f1f5f9; padding:7px; border-radius:5px;">Hemo: <b id="repHemo">18</b></div>
+                <div style="background:#f1f5f9; padding:7px; border-radius:5px;">CSME Proximity: <b id="repCSME">0.12 DD</b></div>
+                <div style="background:#f1f5f9; padding:7px; border-radius:5px;">Confidence: <b id="repConf" style="color:#0284c7;">91.5%</b></div>
+            </div>
+
+            <div style="background:#f8fafc; border-left:4px solid #0284c7; padding:10px; font-size:12px;">
+                <b>Recommended Action:</b> <span id="repAction">Prompt referral to Ophthalmologist within 1-2 weeks.</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; padding-top:8px; border-top:1px solid #e2e8f0;">
+                <div style="font-size:9.5px; color:#64748b; max-width:440px; line-height:1.3;">
+                    <b>NOTICE:</b> DRISHTI AI decision-support output. Final clinical sign-off must be performed by a qualified ophthalmologist.
+                </div>
+                <div style="text-align:right; border:1.5px dashed #059669; padding:4px 10px; border-radius:5px; color:#059669; font-weight:800; font-size:10.5px;">
+                    DIGITALLY VALIDATED<br><span style="font-size:8.5px; font-weight:normal; color:#475569;">Dr. R. Sharma, MS (Ophth)</span>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+                <button class="btn-act" style="background:#475569; color:#FFFFFF;" onclick="closeReportModal()">Close</button>
+                <button class="btn-act" style="background:var(--primary-blue); color:#FFFFFF;" onclick="window.print()"> Print / Save PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="portal_engine.js"></script>
+</body>
+</html>

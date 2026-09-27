@@ -13,8 +13,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 import cv2
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+BACKEND_DIR = os.path.join(BASE_DIR, "backend")
 SERVER_DIR = os.path.join(BASE_DIR, "server")
-for p in [SERVER_DIR, BASE_DIR]:
+for p in [BACKEND_DIR, SERVER_DIR, BASE_DIR]:
     if p not in sys.path:
         sys.path.insert(0, p)
 

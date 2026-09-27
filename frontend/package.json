@@ -1,0 +1,14 @@
+{
+  "name": "drishti-ai-frontend",
+  "version": "2.0.0",
+  "description": "DR-SHIELD AI: Explainable Retinal Screening Command Center (MathWorks SIH 2026)",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve -l 3000 .",
+    "start": "npx serve -l 3000 .",
+    "build": "echo 'Frontend build static complete'"
+  },
+  "keywords": ["retina", "ophthalmology", "ai", "telemedicine", "diabetic-retinopathy"],
+  "author": "DRISHTI-AI Team",
+  "license": "MIT"
+}
