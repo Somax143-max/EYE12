@@ -917,6 +917,16 @@ function processRealEyeVerificationAndAnalysis(img, filename, base64Data) {
     const riskTitle = document.getElementById('riskPreviewTitle');
     const riskUrg = document.getElementById('riskPreviewUrgency');
 
+    // Immediate visual feedback
+    if (riskTitle) {
+        riskTitle.style.color = '#0284C7';
+        riskTitle.innerText = `⚡ Neural AI Scanning: Analyzing ${filename}...`;
+    }
+    if (riskUrg) {
+        riskUrg.style.color = '#0284C7';
+        riskUrg.innerText = 'Extracting Retinal Biomarkers & Grad-CAM...';
+    }
+
     // 1. Try PyTorch Deep Neural Network Backend via /api/analyze-retina
     const apiBase = getDrishtiApiBase();
     fetch(`${apiBase}/api/analyze-retina`, {
@@ -2052,3 +2062,45 @@ window.addEventListener('keydown', function(e) {
         selectPatient('PAT_006_BLURRED');
     }
 });
+
+// Full Drag-and-Drop Dropzone Initializer
+function initDropzoneEvents() {
+    const dz = document.getElementById('fileDropzone');
+    if (!dz) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dz.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dz.style.borderColor = '#155EEF';
+            dz.style.background = '#EFF4FA';
+            dz.style.transform = 'scale(1.02)';
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dz.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dz.style.borderColor = '';
+            dz.style.background = '';
+            dz.style.transform = '';
+        }, false);
+    });
+
+    dz.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const dt = e.dataTransfer;
+        const files = dt ? dt.files : null;
+        if (files && files.length > 0) {
+            handleFileUpload({ target: { files: files } });
+        }
+    }, false);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDropzoneEvents);
+} else {
+    initDropzoneEvents();
+}
+

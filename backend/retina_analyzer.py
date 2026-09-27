@@ -619,6 +619,15 @@ def log_prediction_audit(img_bgr, result):
 
 # --- 3. FULL RETINAL FUNDUS ANALYSIS ---
 def analyze_retinal_fundus(img_bgr):
+    if img_bgr is None:
+        return {'verified_retina': False, 'error': 'EMPTY_IMAGE', 'message': 'No image provided'}
+    
+    # Ultra-fast resolution normalization for sub-50ms CPU processing
+    ih, iw = img_bgr.shape[:2]
+    if max(ih, iw) > 768:
+        scale = 768.0 / max(ih, iw)
+        img_bgr = cv2.resize(img_bgr, (int(iw * scale), int(ih * scale)), interpolation=cv2.INTER_AREA)
+
     verification = verify_eye_authenticity(img_bgr)
     if not verification['is_eye']:
         res_non = {
