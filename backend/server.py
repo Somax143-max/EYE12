@@ -1,11 +1,10 @@
 import os
 import sys
 import json
-from flask import Flask, request, jsonify, make_response, send_from_directory
+from flask import Flask, request, jsonify, make_response
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(BACKEND_DIR)
-FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
@@ -30,35 +29,25 @@ def add_cors_headers(response):
 
 @app.route('/', methods=['GET'])
 def root_handler():
-    # If running locally with frontend present and requested by browser, serve frontend
-    accept_header = request.headers.get('Accept', '')
-    if 'text/html' in accept_header and os.path.exists(os.path.join(FRONTEND_DIR, 'index.html')):
-        return send_from_directory(FRONTEND_DIR, 'index.html')
-    
-    # Otherwise return Flask API Gateway metadata for Render deployment
+    """Pure API Gateway Root: Returns JSON status and available endpoints."""
     return jsonify({
         'status': 'ONLINE',
         'service': 'DRISHTI AI Retinal Verification & Diagnostic Engine',
-        'framework': 'Flask',
+        'framework': 'Flask / PyTorch',
+        'type': 'REST API Microservice',
         'version': '2.0.0-SIH26038',
         'deployment': 'Render Cloud Service',
         'endpoints': {
-            'health': '/api/health',
-            'status': '/api/status',
+            'health': '/api/health (GET)',
+            'status': '/api/status (GET)',
             'analyze_retina': '/api/analyze-retina (POST)',
-            'drift_status': '/api/drift-status',
-            'sample_images': '/api/sample-images',
-            'referrals': '/api/referrals',
+            'drift_status': '/api/drift-status (GET)',
+            'sample_images': '/api/sample-images (GET)',
+            'referrals': '/api/referrals (GET)',
             'register_patient': '/api/register-patient (POST)'
-        }
-    })
-
-# Serve static frontend assets if hosted together locally
-@app.route('/<path:filename>', methods=['GET'])
-def static_frontend_handler(filename):
-    if os.path.exists(os.path.join(FRONTEND_DIR, filename)):
-        return send_from_directory(FRONTEND_DIR, filename)
-    return jsonify({'error': f'Resource {filename} not found'}), 404
+        },
+        'docs': 'This backend is a pure REST API service. The user interface is hosted separately on Vercel.'
+    }), 200
 
 @app.route('/api/health', methods=['GET'])
 @app.route('/api/status', methods=['GET'])
@@ -78,7 +67,7 @@ def drift_status():
 @app.route('/api/sample-images', methods=['GET'])
 def sample_images():
     manifest_paths = [
-        os.path.join(FRONTEND_DIR, 'sample_images', 'manifest.json'),
+        os.path.join(BASE_DIR, 'frontend', 'sample_images', 'manifest.json'),
         os.path.join(BACKEND_DIR, 'sample_images', 'manifest.json'),
         os.path.join(BASE_DIR, 'web', 'sample_images', 'manifest.json')
     ]
@@ -153,15 +142,15 @@ def bad_request(e):
 
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify({'error': 'Resource Not Found'}), 404
+    return jsonify({'error': 'Endpoint Not Found', 'service': 'DRISHTI AI Backend'}), 404
 
 @app.errorhandler(500)
 def server_error(e):
     return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
 
 def run_server(port=8080, host='0.0.0.0'):
-    print(f"DRISHTI AI Flask Clinical Server running at http://127.0.0.1:{port}")
-    print(f"API Endpoints ready: /api/health, /api/analyze-retina, /api/drift-status")
+    print(f"DRISHTI AI Pure REST API Server running at http://127.0.0.1:{port}")
+    print(f"API Endpoints ready: /api/health, /api/analyze-retina, /api/drift-status, /api/referrals")
     sys.stdout.flush()
     app.run(host=host, port=port, debug=False, threaded=True)
 
