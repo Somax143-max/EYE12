@@ -16,6 +16,9 @@ from app.validators.input_sanitizer import validate_and_sanitize_image
 from app.monitoring.drift_detector import get_drift_monitor
 from app.db.database import register_patient, get_referred_queue
 
+# Preload & warm up PyTorch neural networks into RAM at boot
+retina_analyzer.preload_and_warmup_models()
+
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max payload
 app.config['JSON_SORT_KEYS'] = False

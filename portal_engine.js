@@ -618,7 +618,7 @@ function updateRealtimeCanvas() {
     }
 }
 
-// Chunk 5: File Upload & Simulink Engine
+// Chunk 5: File Upload & Simulink Engine (Optimized Fast Ingestion)
 function handleFileUpload(event) {
     const file = event.target.files ? event.target.files[0] : (event.dataTransfer ? event.dataTransfer.files[0] : null);
     if (!file) return;
@@ -627,13 +627,29 @@ function handleFileUpload(event) {
 
     const reader = new FileReader();
     reader.onload = function(e) {
-        const base64Data = e.target.result;
+        const rawData = e.target.result;
         const img = new Image();
         img.onload = function() {
             customUploadedImg = img;
-            processRealEyeVerificationAndAnalysis(img, file.name, base64Data);
+            
+            // Fast client-side optimization: scale large photos down to max 1024px for sub-100ms transmission
+            let payloadData = rawData;
+            const maxDim = 1024;
+            if (img.width > maxDim || img.height > maxDim) {
+                const scale = Math.min(maxDim / img.width, maxDim / img.height);
+                const optCanvas = document.createElement('canvas');
+                optCanvas.width = Math.round(img.width * scale);
+                optCanvas.height = Math.round(img.height * scale);
+                const oCtx = optCanvas.getContext('2d');
+                oCtx.imageSmoothingEnabled = true;
+                oCtx.imageSmoothingQuality = 'high';
+                oCtx.drawImage(img, 0, 0, optCanvas.width, optCanvas.height);
+                payloadData = optCanvas.toDataURL('image/jpeg', 0.92);
+            }
+            
+            processRealEyeVerificationAndAnalysis(img, file.name, payloadData);
         };
-        img.src = base64Data;
+        img.src = rawData;
     };
     reader.readAsDataURL(file);
 }

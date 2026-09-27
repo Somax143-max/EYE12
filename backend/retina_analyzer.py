@@ -7,6 +7,12 @@ import base64
 from train_retina_detector import RetinaEyeClassifier
 from train_dr_grader import RetinaDRGradingNet
 
+# Set optimal thread allocation for cloud CPU containers
+try:
+    torch.set_num_threads(min(2, max(1, os.cpu_count() or 1)))
+except Exception:
+    pass
+
 # Global cached PyTorch Deep Neural Networks
 _DL_MODEL = None
 _DR_GRADER_MODEL = None
@@ -48,6 +54,22 @@ def get_dr_grader():
         except Exception as e:
             print('Notice: DR grader model initialization warning:', e)
     return _DR_GRADER_MODEL
+
+def preload_and_warmup_models():
+    """Warms up PyTorch deep neural networks into RAM so real-time inference takes <50ms."""
+    try:
+        m1 = get_dl_classifier()
+        m2 = get_dr_grader()
+        dummy = torch.zeros((1, 3, 224, 224), dtype=torch.float32)
+        if m1 is not None:
+            with torch.inference_mode():
+                m1(dummy)
+        if m2 is not None:
+            with torch.inference_mode():
+                m2(dummy)
+        print("[DRISHTI AI] PyTorch models pre-loaded and warmed up in RAM for fast inference.")
+    except Exception as e:
+        print("[DRISHTI AI] Model warmup notice:", e)
 
 def predict_dr_grade_and_percentage_with_full_xai(img_bgr):
     """
