@@ -842,12 +842,59 @@ function getDrishtiApiBase() {
     if (window.DRISHTI_API_BASE) return window.DRISHTI_API_BASE.replace(/\/$/, '');
     try {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('api')) return urlParams.get('api').replace(/\/$/, '');
+        if (urlParams.has('api')) {
+            const paramVal = urlParams.get('api').replace(/\/$/, '');
+            localStorage.setItem('DRISHTI_API_BASE', paramVal);
+            return paramVal;
+        }
         const stored = localStorage.getItem('DRISHTI_API_BASE');
         if (stored) return stored.replace(/\/$/, '');
     } catch(e) {}
+    
+    // If hosted on Vercel or remote host without local backend, fallback to Render backend
+    const host = window.location.hostname || '';
+    if (host.includes('vercel.app') || (host && host !== 'localhost' && host !== '127.0.0.1')) {
+        return 'https://drishti-ai-backend.onrender.com';
+    }
     return '';
 }
+
+function configureBackendUrl() {
+    const current = getDrishtiApiBase() || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8080' : 'https://drishti-ai-backend.onrender.com');
+    const newUrl = prompt('Enter your Render Backend API URL (e.g., https://drishti-ai-backend.onrender.com or http://127.0.0.1:8080):', current);
+    if (newUrl !== null) {
+        const clean = newUrl.trim().replace(/\/$/, '');
+        localStorage.setItem('DRISHTI_API_BASE', clean);
+        window.DRISHTI_API_BASE = clean;
+        checkBackendHealth();
+        alert('Backend API Endpoint updated to:\n' + (clean || '(Current Origin)'));
+    }
+}
+
+function checkBackendHealth() {
+    const apiBase = getDrishtiApiBase();
+    const netText = document.getElementById('netText');
+    const pulse = document.getElementById('pulseDot');
+    
+    fetch(`${apiBase}/api/health`)
+        .then(r => r.json())
+        .then(data => {
+            if (netText) {
+                netText.innerText = `Online: ${apiBase ? 'Render Cloud' : 'Local PHC'} (${data.service || 'Flask AI'})`;
+                netText.title = `Connected to: ${apiBase || window.location.origin}`;
+            }
+            if (pulse) pulse.style.background = '#10b981';
+        })
+        .catch(err => {
+            if (netText) {
+                netText.innerText = `API Standby (Client Verifier Active)`;
+                netText.title = `Backend at ${apiBase || 'origin'} unreachable. Click to change Render URL.`;
+            }
+        });
+}
+
+// Auto-check on load
+setTimeout(checkBackendHealth, 800);
 
 // MAIN REAL-TIME ORCHESTRATOR FOR CUSTOM IMAGES
 function processRealEyeVerificationAndAnalysis(img, filename, base64Data) {

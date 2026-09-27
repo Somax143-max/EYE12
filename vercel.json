@@ -28,22 +28,6 @@
     {
       "source": "/sample_images/:path*",
       "destination": "/frontend/sample_images/:path*"
-    },
-    {
-      "source": "/:file((?!frontend).+\\.png)",
-      "destination": "/frontend/:file"
-    },
-    {
-      "source": "/style.css",
-      "destination": "/frontend/style.css"
-    },
-    {
-      "source": "/portal_engine.js",
-      "destination": "/frontend/portal_engine.js"
-    },
-    {
-      "source": "/",
-      "destination": "/frontend/index.html"
     }
   ]
 }

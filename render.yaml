@@ -2,19 +2,20 @@ services:
   - type: web
     name: drishti-ai-backend
     env: python
-    buildCommand: pip install --upgrade pip && pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r backend/requirements.txt
-    startCommand: gunicorn --chdir backend --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT wsgi:app
+    buildCommand: pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn --workers 1 --threads 4 --timeout 180 --bind 0.0.0.0:$PORT wsgi:app
     plan: free
     region: oregon
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
       - key: PORT
-        value: 8080
+        value: 10000
       - key: DRISHTI_ENV
         value: production
       - key: RURAL_EDGE_MODE
         value: "true"
+      - key: PYTHON_VERSION
+        value: 3.11.9
       - key: DRISHTI_SECRET_KEY
         generateValue: true
-
